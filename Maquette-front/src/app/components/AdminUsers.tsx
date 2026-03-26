@@ -24,7 +24,7 @@ const emptyForm = (): Partial<User> => ({
   role: "utilisateur",
   hasAccount: true,
   groupIds: [],
-  exemptions: { association: false, social: false, elected: false },
+  exemptions: { association: false, social: false, elected: false, dispense: false, justificatif: false, caution: false },
 });
 
 export function AdminUsers() {
@@ -76,7 +76,7 @@ export function AdminUsers() {
 
   const handleOpenEdit = (user: User) => {
     setEditingUser(user);
-    setEditForm({ firstName: user.firstName, lastName: user.lastName, email: user.email, phone: user.phone, role: user.role, hasAccount: user.hasAccount });
+    setEditForm({ firstName: user.firstName, lastName: user.lastName, email: user.email, phone: user.phone, role: user.role, hasAccount: user.hasAccount, exemptions: { ...user.exemptions } });
   };
 
   const handleSaveEdit = () => {
@@ -101,7 +101,7 @@ export function AdminUsers() {
       role: createForm.role ?? "utilisateur",
       hasAccount: createForm.hasAccount ?? true,
       groupIds: [],
-      exemptions: { association: false, social: false, elected: false },
+      exemptions: { association: false, social: false, elected: false, dispense: false, justificatif: false, caution: false },
     };
     setUsers((prev) => [...prev, newUser]);
     setShowCreate(false);
@@ -364,6 +364,31 @@ function UserForm({ form, setForm, roles }: {
             <option value="true">Autonome</option>
             <option value="false">Sous-tutelle</option>
           </select>
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-600 mb-1">Dispenses et obligations</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {([
+            { key: "dispense" as const, label: "Dispense de paiement" },
+            { key: "justificatif" as const, label: "Justificatif requis" },
+            { key: "caution" as const, label: "Caution requise" },
+          ]).map(({ key, label }) => (
+            <label key={key} className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition ${
+              form.exemptions?.[key] ? "border-blue-300 bg-blue-50" : "border-gray-200"
+            }`}>
+              <input
+                type="checkbox"
+                checked={form.exemptions?.[key] ?? false}
+                onChange={(e) => setForm((f) => ({
+                  ...f,
+                  exemptions: { ...f.exemptions, association: f.exemptions?.association ?? false, social: f.exemptions?.social ?? false, elected: f.exemptions?.elected ?? false, dispense: f.exemptions?.dispense ?? false, justificatif: f.exemptions?.justificatif ?? false, caution: f.exemptions?.caution ?? false, [key]: e.target.checked },
+                }))}
+                className="w-3.5 h-3.5 text-blue-600 rounded"
+              />
+              <span className="text-xs font-medium">{label}</span>
+            </label>
+          ))}
         </div>
       </div>
     </div>

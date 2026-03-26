@@ -24,15 +24,26 @@ export interface User {
     association: boolean;
     social: boolean;
     elected: boolean;
+    dispense: boolean;
+    justificatif: boolean;
+    caution: boolean;
   };
   role: "utilisateur" | "admin-groupe" | "admin-conseil" | "super-admin";
 }
 
+export interface GroupExemptions {
+  dispense: boolean;
+  justificatif: boolean;
+  caution: boolean;
+}
+
 export interface Group {
   id: string;
+  code: string;
   name: string;
   type: "service" | "association" | "team" | "council";
   description: string;
+  exemptions: GroupExemptions;
 }
 
 export interface Booking {
@@ -127,30 +138,40 @@ export const mockResources: Resource[] = [
   },
 ];
 
+const defaultExemptions: GroupExemptions = { dispense: false, justificatif: false, caution: false };
+
 export const mockGroups: Group[] = [
   {
     id: "g1",
+    code: "GRP-001",
     name: "Conseil Municipal",
     type: "council",
     description: "Membres du conseil municipal",
+    exemptions: { ...defaultExemptions, dispense: true },
   },
   {
     id: "g2",
+    code: "GRP-002",
     name: "Association Sportive",
     type: "association",
     description: "Association locale de sports",
+    exemptions: { ...defaultExemptions },
   },
   {
     id: "g3",
+    code: "GRP-003",
     name: "Service Culturel",
     type: "service",
     description: "Service culturel de la mairie",
+    exemptions: { ...defaultExemptions, justificatif: true },
   },
   {
     id: "g4",
+    code: "GRP-004",
     name: "Comité des Fêtes",
     type: "association",
     description: "Organisation des événements locaux",
+    exemptions: { ...defaultExemptions, caution: true },
   },
 ];
 
@@ -163,7 +184,7 @@ export const mockUsers: User[] = [
     phone: "0612345678",
     hasAccount: true,
     groupIds: [],
-    exemptions: { association: false, social: false, elected: false },
+    exemptions: { association: false, social: false, elected: false, dispense: false, justificatif: false, caution: false },
     role: "utilisateur",
   },
   {
@@ -174,7 +195,7 @@ export const mockUsers: User[] = [
     phone: "0623456789",
     hasAccount: true,
     groupIds: ["g2"],
-    exemptions: { association: true, social: false, elected: false },
+    exemptions: { association: true, social: false, elected: false, dispense: false, justificatif: false, caution: false },
     role: "utilisateur",
   },
   {
@@ -185,7 +206,7 @@ export const mockUsers: User[] = [
     phone: "0634567890",
     hasAccount: true,
     groupIds: ["g1"],
-    exemptions: { association: false, social: false, elected: true },
+    exemptions: { association: false, social: false, elected: true, dispense: true, justificatif: false, caution: false },
     role: "super-admin",
   },
   {
@@ -196,7 +217,7 @@ export const mockUsers: User[] = [
     phone: "0645678901",
     hasAccount: true,
     groupIds: [],
-    exemptions: { association: false, social: false, elected: false },
+    exemptions: { association: false, social: false, elected: false, dispense: false, justificatif: false, caution: false },
     role: "admin-groupe",
   },
   {
@@ -207,7 +228,7 @@ export const mockUsers: User[] = [
     phone: "0656789012",
     hasAccount: false,
     groupIds: [],
-    exemptions: { association: false, social: true, elected: false },
+    exemptions: { association: false, social: true, elected: false, dispense: true, justificatif: false, caution: false },
     role: "utilisateur",
   },
   {
@@ -218,7 +239,7 @@ export const mockUsers: User[] = [
     phone: "0667890123",
     hasAccount: true,
     groupIds: [],
-    exemptions: { association: false, social: false, elected: false },
+    exemptions: { association: false, social: false, elected: false, dispense: false, justificatif: false, caution: false },
     role: "admin-conseil",
   },
 ];
