@@ -23,6 +23,7 @@ export const mockGroupMembers: Record<string, GroupMember[]> = {
   g2: [
     { id: "u6", firstName: "Admin-Conseil", lastName: "", email: "admin-conseil@mairie.fr", role: "admin-conseil" },
     { id: "u4", firstName: "Admin-Groupe", lastName: "", email: "admin-groupe@mairie.fr", role: "admin-groupe" },
+    { id: "u1", firstName: "Utilisateur", lastName: "", email: "utilisateur@email.com", role: "utilisateur" },
     { id: "m2", firstName: "Marie", lastName: "Martin", email: "marie.martin@email.com", role: "utilisateur" },
     { id: "m3", firstName: "Lucas", lastName: "Simon", email: "lucas.simon@email.com", role: "utilisateur" },
   ],
@@ -49,6 +50,7 @@ export const mockGroupPending: Record<string, GroupPendingRequest[]> = {
     { id: "r5", firstName: "Emma", lastName: "Dupuis", email: "e.dupuis@email.com", requestedAt: "2026-03-25" },
   ],
   g4: [
+    { id: "u1", firstName: "Utilisateur", lastName: "", email: "utilisateur@email.com", requestedAt: "2026-03-26" },
     { id: "r6", firstName: "Thomas", lastName: "Roy", email: "t.roy@email.com", requestedAt: "2026-03-21" },
   ],
 };

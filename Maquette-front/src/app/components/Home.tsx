@@ -103,42 +103,6 @@ export function Home() {
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h2 className="text-xl font-bold text-center mb-8">Avantages et exonérations</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="text-center">
-            <div className="bg-green-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Users className="w-7 h-7 text-green-700" />
-            </div>
-            <h3 className="text-base font-bold mb-2">Associations</h3>
-            <p className="text-gray-600 text-sm">
-              Les associations déclarées bénéficient de tarifs préférentiels et d'exonérations possibles.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="bg-green-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Shield className="w-7 h-7 text-green-700" />
-            </div>
-            <h3 className="text-base font-bold mb-2">Critères sociaux</h3>
-            <p className="text-gray-600 text-sm">
-              Des exonérations peuvent être accordées selon des critères sociaux définis.
-            </p>
-          </div>
-
-          <div className="text-center">
-            <div className="bg-green-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3">
-              <FileCheck className="w-7 h-7 text-green-700" />
-            </div>
-            <h3 className="text-base font-bold mb-2">Élus</h3>
-            <p className="text-gray-600 text-sm">
-              Les membres du conseil municipal disposent d'exonérations spécifiques.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="bg-blue-900 text-white py-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

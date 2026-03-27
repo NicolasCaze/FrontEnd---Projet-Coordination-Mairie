@@ -10,6 +10,7 @@ export interface Resource {
   image: string;
   available: boolean;
   pricePerDay?: number;
+  paperNeeded?: boolean;
 }
 
 export interface User {
@@ -88,6 +89,7 @@ export const mockResources: Resource[] = [
     image: "https://images.unsplash.com/photo-1519167758481-83f29da8787d",
     available: true,
     pricePerDay: 150,
+    paperNeeded: true,
   },
   {
     id: "2",
@@ -98,6 +100,7 @@ export const mockResources: Resource[] = [
     image: "https://images.unsplash.com/photo-1497366216548-37526070297c",
     available: true,
     pricePerDay: 50,
+    paperNeeded: false,
   },
   {
     id: "3",
@@ -108,6 +111,7 @@ export const mockResources: Resource[] = [
     image: "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04",
     available: true,
     pricePerDay: 80,
+    paperNeeded: true,
   },
   {
     id: "4",
@@ -117,6 +121,7 @@ export const mockResources: Resource[] = [
     image: "https://images.unsplash.com/photo-1503602642458-232111445657",
     available: true,
     pricePerDay: 20,
+    paperNeeded: false,
   },
   {
     id: "5",
@@ -126,6 +131,7 @@ export const mockResources: Resource[] = [
     image: "https://images.unsplash.com/photo-1617806118233-18e1de247200",
     available: true,
     pricePerDay: 30,
+    paperNeeded: false,
   },
   {
     id: "6",
@@ -135,6 +141,7 @@ export const mockResources: Resource[] = [
     image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
     available: true,
     pricePerDay: 40,
+    paperNeeded: true,
   },
 ];
 
@@ -183,7 +190,7 @@ export const mockUsers: User[] = [
     lastName: "",
     phone: "0612345678",
     hasAccount: true,
-    groupIds: [],
+    groupIds: ["g2"],
     exemptions: { association: false, social: false, elected: false, dispense: false, justificatif: false, caution: false },
     role: "utilisateur",
   },

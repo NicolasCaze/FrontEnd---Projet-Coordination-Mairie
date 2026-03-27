@@ -1,51 +1,29 @@
 import { useState } from "react";
 import { Link, useOutletContext } from "react-router";
 import { mockResources, mockBookings, ResourceType } from "../data/mockData";
-import { Building, Wrench, Users, Filter, Calendar } from "lucide-react";
+import { Building, Wrench, Users, Filter } from "lucide-react";
 
 export function Catalog() {
   const { currentUser } = useOutletContext<any>();
   const [typeFilter, setTypeFilter] = useState<ResourceType | "all">("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
 
   const [appliedType, setAppliedType] = useState<ResourceType | "all">("all");
-  const [appliedStart, setAppliedStart] = useState("");
-  const [appliedEnd, setAppliedEnd] = useState("");
 
   const handleFilter = () => {
     setAppliedType(typeFilter);
-    setAppliedStart(startDate);
-    setAppliedEnd(endDate);
   };
 
   const handleReset = () => {
     setTypeFilter("all");
-    setStartDate("");
-    setEndDate("");
     setAppliedType("all");
-    setAppliedStart("");
-    setAppliedEnd("");
-  };
-
-  const isBookedDuringPeriod = (resourceId: string): boolean => {
-    if (!appliedStart || !appliedEnd) return false;
-    return mockBookings.some(
-      (b) =>
-        b.resourceId === resourceId &&
-        (b.status === "approved" || b.status === "pending") &&
-        b.startDate <= appliedEnd &&
-        b.endDate >= appliedStart
-    );
   };
 
   const filteredResources = mockResources.filter((resource) => {
     const matchesType = appliedType === "all" || resource.type === appliedType;
-    const availableForDates = !isBookedDuringPeriod(resource.id);
-    return matchesType && availableForDates;
+    return matchesType;
   });
 
-  const isFiltered = appliedType !== "all" || appliedStart || appliedEnd;
+  const isFiltered = appliedType !== "all";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -59,7 +37,7 @@ export function Catalog() {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {/* Type Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
@@ -75,40 +53,6 @@ export function Catalog() {
               <option value="room">Salles</option>
               <option value="equipment">Matériel</option>
             </select>
-          </div>
-
-          {/* Date début */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              Date de début
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                if (endDate && e.target.value > endDate) setEndDate("");
-              }}
-              min={new Date().toISOString().split("T")[0]}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Date fin */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              Date de fin
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              min={startDate || new Date().toISOString().split("T")[0]}
-              disabled={!startDate}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
           </div>
         </div>
 

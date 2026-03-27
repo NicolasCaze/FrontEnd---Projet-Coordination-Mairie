@@ -63,10 +63,9 @@ export function AdminUsers() {
     return target.role !== "admin-conseil" && target.role !== "super-admin";
   };
 
-  const availableRoles = (): User["role"][] => {
-    if (isSuperAdmin) return ["utilisateur", "admin-groupe", "admin-conseil", "super-admin"];
-    return ["utilisateur", "admin-groupe"];
-  };
+  const availableRoles: User["role"][] = isSuperAdmin
+    ? ["utilisateur", "admin-groupe", "admin-conseil"]
+    : ["utilisateur", "admin-groupe"];
 
   const filteredUsers = users.filter((u) => {
     const matchRole = filterRole === "all" || u.role === filterRole;
@@ -239,12 +238,12 @@ export function AdminUsers() {
       {/* Modal Modifier */}
       {editingUser && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setEditingUser(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-bold">Modifier le profil</h2>
               <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
-            <UserForm form={editForm} setForm={setEditForm} roles={availableRoles()} />
+            <UserForm form={editForm} setForm={setEditForm} roles={availableRoles} />
             <div className="flex gap-3 mt-5">
               <button onClick={handleSaveEdit} className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 bg-blue-900 text-white rounded-lg text-sm font-semibold hover:bg-blue-800 transition">
                 <Save className="w-4 h-4" />Enregistrer
@@ -260,12 +259,12 @@ export function AdminUsers() {
       {/* Modal Créer */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4" onClick={() => setShowCreate(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-base font-bold">Créer un utilisateur</h2>
               <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
-            <UserForm form={createForm} setForm={setCreateForm} roles={availableRoles()} />
+            <UserForm form={createForm} setForm={setCreateForm} roles={availableRoles} />
             <div className="flex gap-3 mt-5">
               <button
                 onClick={handleCreate}
@@ -318,6 +317,9 @@ function UserForm({ form, setForm, roles }: {
   setForm: React.Dispatch<React.SetStateAction<Partial<User>>>;
   roles: User["role"][];
 }) {
+  const superAdminEmail = mockUsers.find((u) => u.role === "super-admin")?.email ?? "";
+  const isTutelle = form.hasAccount === false;
+
   const roleLabels: Record<string, string> = {
     utilisateur: "Utilisateur",
     "admin-groupe": "Admin-Groupe",
@@ -339,32 +341,38 @@ function UserForm({ form, setForm, roles }: {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
       </div>
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
-        <input type="email" value={form.email ?? ""} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-      </div>
+      {!isTutelle && (
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+          <input type="email" value={form.email ?? ""} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+      )}
+      <label className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition ${isTutelle ? "border-red-300 bg-red-50" : "border-gray-200 hover:bg-gray-50"}`}>
+        <input
+          type="checkbox"
+          checked={isTutelle}
+          onChange={(e) => setForm((f) => ({
+            ...f,
+            hasAccount: !e.target.checked,
+            email: e.target.checked ? superAdminEmail : "",
+          }))}
+          className="w-4 h-4 text-red-600 rounded"
+        />
+        <span className="text-sm font-medium">Compte sous-tutelle</span>
+        {isTutelle && <span className="ml-auto text-xs text-red-500 font-medium">Email rattaché au super-admin</span>}
+      </label>
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Téléphone</label>
         <input type="text" value={form.phone ?? ""} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Rôle</label>
-          <select value={form.role ?? "utilisateur"} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as User["role"] }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            {roles.map((r) => <option key={r} value={r}>{roleLabels[r]}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Type de compte</label>
-          <select value={form.hasAccount ? "true" : "false"} onChange={(e) => setForm((f) => ({ ...f, hasAccount: e.target.value === "true" }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="true">Autonome</option>
-            <option value="false">Sous-tutelle</option>
-          </select>
-        </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-600 mb-1">Rôle</label>
+        <select value={form.role ?? "utilisateur"} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as User["role"] }))}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          {roles.map((r) => <option key={r} value={r}>{roleLabels[r]}</option>)}
+        </select>
       </div>
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Dispenses et obligations</label>
