@@ -1,16 +1,9 @@
-import { useState } from 'react'
-import { Button } from './components/ui/button'
+import { RouterProvider } from 'react-router-dom'
+import { router } from './router'
 import './App.css'
 
 function App() {
-
-
-  return (
-    <>
-      <h1>Hello World</h1>
-      <Button>Click me</Button>
-    </>
-  )
+  return <RouterProvider router={router} />
 }
 
 export default App

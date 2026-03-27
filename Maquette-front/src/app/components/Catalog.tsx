@@ -1,13 +1,34 @@
-import { useState } from "react";
-import { Link, useOutletContext } from "react-router";
-import { mockResources, mockBookings, ResourceType } from "../data/mockData";
-import { Building, Wrench, Users, Filter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router";
+import { Building, Wrench, Users, Filter, Loader2 } from "lucide-react";
+import { bienService } from "@/services/bienService";
+import { Bien } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Catalog() {
-  const { currentUser } = useOutletContext<any>();
-  const [typeFilter, setTypeFilter] = useState<ResourceType | "all">("all");
+  const { user } = useAuth();
+  const [biens, setBiens] = useState<Bien[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [appliedType, setAppliedType] = useState<string>("all");
 
-  const [appliedType, setAppliedType] = useState<ResourceType | "all">("all");
+  useEffect(() => {
+    fetchBiens();
+  }, []);
+
+  const fetchBiens = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await bienService.getAll({ disponible: true });
+      setBiens(response.content);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Erreur lors du chargement des biens");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFilter = () => {
     setAppliedType(typeFilter);
@@ -18,12 +39,33 @@ export function Catalog() {
     setAppliedType("all");
   };
 
-  const filteredResources = mockResources.filter((resource) => {
-    const matchesType = appliedType === "all" || resource.type === appliedType;
+  const filteredResources = biens.filter((bien) => {
+    const matchesType = appliedType === "all" || bien.type === appliedType;
     return matchesType;
   });
 
   const isFiltered = appliedType !== "all";
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-900 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement du catalogue...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -50,8 +92,10 @@ export function Catalog() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">Tous les types</option>
-              <option value="room">Salles</option>
-              <option value="equipment">Matériel</option>
+              <option value="salle">Salles</option>
+              <option value="materiel">Matériel</option>
+              <option value="vehicule">Véhicules</option>
+              <option value="equipement">Équipement</option>
             </select>
           </div>
         </div>
@@ -83,38 +127,25 @@ export function Catalog() {
 
       {/* Resources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredResources.map((resource) => (
+        {filteredResources.map((bien) => (
           <div
-            key={resource.id}
+            key={bien.id_bien}
             className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition group flex flex-col"
           >
             {/* Image */}
             <div className="relative h-48 overflow-hidden bg-gray-200">
               <img
-                src={resource.image}
-                alt={resource.name}
+                src={bien.imageUrl || "/placeholder-property.jpg"}
+                alt={bien.nom}
                 className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
               />
               <div className="absolute top-4 right-4">
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1 ${
-                  resource.type === "room"
-                    ? "bg-blue-900 text-white"
-                    : "bg-green-600 text-white"
-                }`}>
-                  {resource.type === "room" ? (
-                    <>
-                      <Building className="w-4 h-4" />
-                      Salle
-                    </>
-                  ) : (
-                    <>
-                      <Wrench className="w-4 h-4" />
-                      Matériel
-                    </>
-                  )}
+                <span className="px-3 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1 bg-blue-900 text-white">
+                  <Building className="w-4 h-4" />
+                  {bien.nom_cat_bien || bien.type || 'Bien'}
                 </span>
               </div>
-              {!resource.available && (
+              {!bien.estVisible && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                   <span className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold">
                     Non disponible
@@ -127,24 +158,21 @@ export function Catalog() {
             <div className="p-4 flex flex-col flex-1">
               {/* Partie 1 — titre + description */}
               <div>
-                <h3 className="text-base font-bold mb-1">{resource.name}</h3>
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{resource.description}</p>
+                <h3 className="text-base font-bold mb-1">{bien.nom}</h3>
+                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{bien.description || "Aucune description disponible"}</p>
               </div>
 
               {/* Partie 2 — infos (capacité, prix) */}
               <div className="flex-1 flex flex-col">
-                {resource.type !== "room" && resource.capacity && (
+                {bien.capacite && (
                   <div className="flex items-center gap-2 text-gray-700 mb-3">
                     <Users className="w-5 h-5" />
-                    <span>Capacité: {resource.capacity} personnes</span>
+                    <span>Capacité: {bien.capacite} personnes</span>
                   </div>
                 )}
-                {currentUser && (
-                  <div className="mt-auto pt-2 text-right">
-                    <span className="text-lg font-bold text-blue-900">
-                      {resource.pricePerDay}€
-                    </span>
-                    <span className="text-gray-600 text-sm"> / jour</span>
+                {bien.adresse && (
+                  <div className="text-sm text-gray-600 mb-2">
+                    📍 {bien.adresse}
                   </div>
                 )}
               </div>
@@ -152,16 +180,16 @@ export function Catalog() {
               {/* Partie 3 — boutons */}
               <div className="space-y-2 mt-3">
                 <Link
-                  to={`/property/${resource.id}`}
+                  to={`/property/${bien.id_bien}`}
                   className="block w-full text-center py-1.5 rounded-lg text-sm font-semibold transition border border-blue-900 text-blue-900 hover:bg-blue-50"
                 >
                   Voir les détails
                 </Link>
-                {currentUser && (
+                {user && (
                   <Link
-                    to={`/booking/${resource.id}`}
+                    to={`/booking/${bien.id_bien}`}
                     className={`block w-full text-center py-2 rounded-lg text-sm font-semibold transition ${
-                      resource.available
+                      bien.estVisible
                         ? "bg-blue-900 text-white hover:bg-blue-800"
                         : "bg-gray-300 text-gray-500 cursor-not-allowed pointer-events-none"
                     }`}

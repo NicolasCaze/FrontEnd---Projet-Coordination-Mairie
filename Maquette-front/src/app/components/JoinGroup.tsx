@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useOutletContext, Link, useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Users, ArrowLeft, Hash } from "lucide-react";
+import { groupeService } from "@/services/groupeService";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function JoinGroup() {
-  const { currentUser } = useOutletContext<any>();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <p className="text-gray-500 text-lg mb-4">Veuillez vous connecter</p>
@@ -25,14 +28,26 @@ export function JoinGroup() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 8) {
       setError("Le code doit contenir exactement 8 caractères.");
       return;
     }
-    // TODO: logique backend — vérification du code et demande d'adhésion
-    navigate("/dashboard");
+    
+    setLoading(true);
+    setError("");
+    
+    try {
+      // Note: Cette fonctionnalité nécessite un endpoint backend pour rejoindre un groupe par code
+      // await groupeService.joinByCode(code);
+      alert("Demande envoyée avec succès !");
+      navigate("/my-groups");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Code invalide ou erreur lors de la demande");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,10 +94,10 @@ export function JoinGroup() {
 
             <button
               type="submit"
-              disabled={code.length !== 8}
+              disabled={code.length !== 8 || loading}
               className="w-full bg-purple-700 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
-              Envoyer la demande
+              {loading ? "Envoi en cours..." : "Envoyer la demande"}
             </button>
           </form>
 

@@ -1,55 +1,38 @@
-import { useState } from "react";
-import { useOutletContext, Link } from "react-router";
-import { Users, Hash, ArrowLeft, UserPlus, CheckCircle, Clock, X, LogOut, ShieldCheck, Settings } from "lucide-react";
-import { mockGroups } from "../data/mockData";
+import { useState, useEffect } from "react";
+import { Link } from "react-router";
+import { Users, Hash, ArrowLeft, UserPlus, CheckCircle, Clock, X, LogOut, ShieldCheck, Settings, Loader2 } from "lucide-react";
+import { groupeService } from "@/services/groupeService";
+import { useAuth } from "@/contexts/AuthContext";
+import { Groupe } from "@/types";
 
-type GroupStatus = "joined" | "pending";
-
-interface UserGroup {
-  id: string;
-  name: string;
-  description: string;
-  type: string;
-  status: GroupStatus;
-  isAdmin?: boolean;
-  memberCount: number;
-  pendingCount: number;
-}
-
-const mockUserGroupsBase: UserGroup[] = [
-  { id: "g2", name: "Association Sportive", description: "Association locale de sports", type: "association", status: "joined", memberCount: 12, pendingCount: 0 },
-  { id: "g4", name: "Comité des Fêtes", description: "Organisation des événements locaux", type: "association", status: "pending", memberCount: 8, pendingCount: 0 },
-];
-
-const mockAdminGroupeGroups: UserGroup[] = [
-  { id: "g2", name: "Association Sportive", description: "Association locale de sports", type: "association", status: "joined", isAdmin: true, memberCount: 12, pendingCount: 3 },
-  { id: "g4", name: "Comité des Fêtes", description: "Organisation des événements locaux", type: "association", status: "pending", memberCount: 8, pendingCount: 0 },
-];
-
-const mockMunicipalGroups: UserGroup[] = mockGroups.map((g, i) => ({
-  id: g.id,
-  name: g.name,
-  description: g.description,
-  type: g.type,
-  status: "joined" as GroupStatus,
-  isAdmin: true,
-  memberCount: [12, 8, 5, 20][i] ?? 10,
-  pendingCount: [3, 0, 2, 1][i] ?? 0,
-}));
 
 export function MyGroups() {
-  const { currentUser } = useOutletContext<any>();
-  const initialGroups =
-    currentUser?.role === "admin-conseil" ? mockMunicipalGroups
-    : currentUser?.role === "admin-groupe" ? mockAdminGroupeGroups
-    : mockUserGroupsBase;
-  const [groups, setGroups] = useState<UserGroup[]>(initialGroups);
+  const { user } = useAuth();
+  const [groupes, setGroupes] = useState<Groupe[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  if (!currentUser) {
+  useEffect(() => {
+    const fetchGroupes = async () => {
+      try {
+        const data = await groupeService.getMyGroups();
+        setGroupes(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (user) {
+      fetchGroupes();
+    }
+  }, [user]);
+
+  if (!user) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
         <p className="text-gray-500 mb-4">Veuillez vous connecter</p>
@@ -58,18 +41,36 @@ export function MyGroups() {
     );
   }
 
-  const isManagerRole = currentUser.role === "admin-conseil" || currentUser.role === "super-admin";
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-900 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isManagerRole = user.role === "ADMIN";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (value.length <= 8) { setCode(value); setError(""); }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (code.length !== 8) { setError("Le code doit contenir exactement 8 caractères."); return; }
-    setSubmitted(true);
-    setCode("");
+    
+    try {
+      // Logique pour rejoindre un groupe avec un code
+      // await groupeService.joinGroup(groupeId);
+      setSubmitted(true);
+      setCode("");
+    } catch (err) {
+      setError("Erreur lors de la tentative de rejoindre le groupe");
+    }
   };
 
   const handleCloseModal = () => {
@@ -79,8 +80,16 @@ export function MyGroups() {
     setSubmitted(false);
   };
 
-  const handleRemove = (id: string) => {
-    setGroups((prev) => prev.filter((g) => g.id !== id));
+  const handleRemove = async (id: string) => {
+    if (!confirm("Voulez-vous vraiment quitter ce groupe ?")) return;
+    
+    try {
+      await groupeService.leaveGroup(id);
+      setGroupes(groupes.filter(g => g.id_groupe !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la sortie du groupe");
+    }
   };
 
   return (
@@ -111,80 +120,40 @@ export function MyGroups() {
           Liste des groupes
         </h2>
 
-        {groups.length > 0 ? (
+        {groupes.length > 0 ? (
           <div className="divide-y divide-gray-100">
-            {groups.map((group) => (
-              <div key={group.id} className="flex items-center gap-3 py-3">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${group.isAdmin ? "bg-purple-100" : "bg-blue-100"}`}>
-                  {group.isAdmin
-                    ? <ShieldCheck className="w-4 h-4 text-purple-700" />
-                    : <Users className="w-4 h-4 text-blue-900" />
-                  }
+            {groupes.map((groupe) => (
+              <div key={groupe.id_groupe} className="flex items-center gap-3 py-3">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-100">
+                  <Users className="w-4 h-4 text-blue-900" />
                 </div>
 
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">{group.name}</p>
+                  <p className="text-sm font-semibold">{groupe.nom}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {group.memberCount} membre{group.memberCount > 1 ? "s" : ""}
+                    <span className="text-xs text-gray-500">
+                      {groupe.description || "Aucune description"}
                     </span>
-                    {group.isAdmin && group.pendingCount > 0 && (
-                      <span className="text-xs text-orange-600 flex items-center gap-1 font-semibold">
-                        <Clock className="w-3 h-3" />
-                        {group.pendingCount} en attente
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold ${
-                  group.isAdmin
-                    ? "bg-purple-100 text-purple-700"
-                    : group.status === "joined"
-                    ? "bg-green-100 text-green-700"
-                    : "bg-orange-100 text-orange-700"
-                }`}>
-                  {group.isAdmin
-                    ? <><ShieldCheck className="w-3 h-3" /> Administrateur</>
-                    : group.status === "joined"
-                    ? <><CheckCircle className="w-3 h-3" /> Rejoint</>
-                    : <><Clock className="w-3 h-3" /> En attente</>
-                  }
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold bg-green-100 text-green-700">
+                  <CheckCircle className="w-3 h-3" /> Membre
                 </span>
 
-                {(isManagerRole || group.isAdmin) ? (
-                  <Link
-                    to={`/groups/${group.id}/manage`}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 hover:bg-blue-100 transition"
-                  >
-                    <Settings className="w-3 h-3" />
-                    Gérer
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      to={`/groups/${group.id}/manage`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 hover:bg-blue-100 transition"
-                    >
-                      <Users className="w-3 h-3" />
-                      Voir
-                    </Link>
-                    <button
-                      onClick={() => handleRemove(group.id)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                        group.status === "joined"
-                          ? "bg-red-50 text-red-700 hover:bg-red-100"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      {group.status === "joined"
-                        ? <><LogOut className="w-3 h-3" /> Quitter</>
-                        : <><X className="w-3 h-3" /> Annuler</>
-                      }
-                    </button>
-                  </>
-                )}
+                <Link
+                  to={`/groups/${groupe.id_groupe}/manage`}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 hover:bg-blue-100 transition"
+                >
+                  <Users className="w-3 h-3" />
+                  Voir
+                </Link>
+                <button
+                  onClick={() => handleRemove(groupe.id_groupe)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-red-50 text-red-700 hover:bg-red-100"
+                >
+                  <LogOut className="w-3 h-3" /> Quitter
+                </button>
               </div>
             ))}
           </div>

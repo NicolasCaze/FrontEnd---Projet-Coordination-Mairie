@@ -1,43 +1,70 @@
-import { useState } from "react";
-import { useParams, Link, useOutletContext } from "react-router";
-import { ArrowLeft, Users, Clock, CheckCircle, XCircle, UserMinus, ShieldCheck, UserPlus, Search, X, Trash2, Hash, Pencil, Save } from "lucide-react";
-import { mockGroups, mockUsers, type GroupExemptions } from "../data/mockData";
-import { mockGroupMembers, mockGroupPending, type GroupMember as Member, type GroupPendingRequest as PendingRequest } from "../data/mockGroupData";
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router";
+import { ArrowLeft, Users, Clock, CheckCircle, XCircle, UserMinus, ShieldCheck, UserPlus, Search, X, Trash2, Hash, Pencil, Save, Loader2 } from "lucide-react";
+import { groupeService } from "@/services/groupeService";
+import { useAuth } from "@/contexts/AuthContext";
+import { Groupe, GroupeMembre } from "@/types";
 
 export function GroupManagement() {
   const { groupId } = useParams<{ groupId: string }>();
-  const { currentUser } = useOutletContext<any>();
-
-  const group = mockGroups.find((g) => g.id === groupId);
-  const [members, setMembers] = useState<Member[]>(mockGroupMembers[groupId ?? ""] ?? []);
-  const [pending, setPending] = useState<PendingRequest[]>(mockGroupPending[groupId ?? ""] ?? []);
+  const { user } = useAuth();
+  const [groupe, setGroupe] = useState<Groupe | null>(null);
+  const [membres, setMembres] = useState<GroupeMembre[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [asAdmin, setAsAdmin] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleted, setDeleted] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [groupInfo, setGroupInfo] = useState({
-    name: group?.name ?? "",
-    description: group?.description ?? "",
-    exemptions: group?.exemptions ?? { dispense: false, justificatif: false, caution: false },
+  const [editForm, setEditForm] = useState({
+    nom: "",
+    description: ""
   });
-  const [editForm, setEditForm] = useState({ ...groupInfo });
 
-  // Détermine si l'utilisateur courant est admin de ce groupe
-  const currentMember = members.find((m) => m.id === currentUser?.id);
-  const isGroupAdmin =
-    currentUser?.role === "super-admin" ||
-    currentUser?.role === "admin-conseil" ||
-    (currentUser?.role === "admin-groupe" && currentMember?.role === "admin-groupe");
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!groupId) return;
+      
+      try {
+        const [groupeData, membresData] = await Promise.all([
+          groupeService.getById(parseInt(groupId)),
+          groupeService.getMembers(parseInt(groupId))
+        ]);
+        setGroupe(groupeData);
+        setMembres(membresData);
+        setEditForm({
+          nom: groupeData.nom,
+          description: groupeData.description || ""
+        });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [groupId]);
 
-  const isAdminRole = currentUser?.role === "super-admin" || currentUser?.role === "admin-conseil";
+  const isGroupAdmin = user?.role === "ADMIN";
+  const isAdminRole = user?.role === "ADMIN";
   const backTo = isAdminRole ? "/admin/groups" : "/my-groups";
   const backLabel = isAdminRole ? "Retour à la gestion des groupes" : "Retour à mes groupes";
 
-  if (!group) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-900 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!groupe) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8 text-center">
         <p className="text-gray-500 mb-4">Groupe introuvable.</p>
@@ -46,48 +73,59 @@ export function GroupManagement() {
     );
   }
 
-  const handleRemoveMember = (id: string) => {
-    setMembers((prev) => prev.filter((m) => m.id !== id));
+  const handleRemoveMember = async (membreId: number) => {
+    if (!confirm("Voulez-vous vraiment retirer ce membre ?")) return;
+    
+    try {
+      await groupeService.removeMember(parseInt(groupId!), membreId);
+      setMembres(membres.filter(m => m.id !== membreId));
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors du retrait du membre");
+    }
   };
 
-  const handleAddMember = () => {
-    const user = mockUsers.find((u) => u.id === selectedUserId);
-    if (!user) return;
-    const newMember: Member = {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      role: asAdmin ? "admin-groupe" : "utilisateur",
-    };
-    setMembers((prev) => [...prev, newMember]);
-    setShowAddModal(false);
-    setSearch("");
-    setSelectedUserId(null);
-    setAsAdmin(false);
+  const handleAddMember = async () => {
+    if (!selectedUserId) return;
+    
+    try {
+      await groupeService.addMember(parseInt(groupId!), selectedUserId);
+      const membresData = await groupeService.getMembers(parseInt(groupId!));
+      setMembres(membresData);
+      setShowAddModal(false);
+      setSearch("");
+      setSelectedUserId(null);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'ajout du membre");
+    }
   };
 
-  const memberIds = new Set(members.map((m) => m.id));
-  const searchResults = search.trim().length > 0
-    ? mockUsers.filter((u) =>
-        !memberIds.has(u.id) &&
-        `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase())
-      )
-    : [];
+  const searchResults: any[] = [];
 
-  const handleAccept = (id: string) => {
-    setPending((prev) => prev.filter((r) => r.id !== id));
+  const handleAccept = async (membreId: number) => {
+    try {
+      await groupeService.acceptMember(parseInt(groupId!), membreId);
+      const membresData = await groupeService.getMembers(parseInt(groupId!));
+      setMembres(membresData);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleReject = (id: string) => {
-    setPending((prev) => prev.filter((r) => r.id !== id));
+  const handleReject = async (membreId: number) => {
+    try {
+      await groupeService.rejectMember(parseInt(groupId!), membreId);
+      const membresData = await groupeService.getMembers(parseInt(groupId!));
+      setMembres(membresData);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const canRemove = (member: Member) => {
+  const canRemove = (membre: GroupeMembre) => {
     if (!isGroupAdmin) return false;
-    if (member.id === currentUser?.id) return false;
-    if (currentUser?.role === "super-admin") return true;
-    if (member.role === "admin-conseil" || member.role === "admin-groupe") return false;
+    if (membre.userId === user?.id) return false;
     return true;
   };
 

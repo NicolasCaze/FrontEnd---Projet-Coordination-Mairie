@@ -1,6 +1,9 @@
-import { useOutletContext, Link } from "react-router";
-import { Calendar, Users, AlertCircle, CheckCircle, Clock, UserCheck } from "lucide-react";
-import { mockBookings, mockUsers, mockAuditLog } from "../data/mockData";
+import { useState, useEffect } from "react";
+import { Link } from "react-router";
+import { Calendar, Users, AlertCircle, CheckCircle, Clock, UserCheck, Loader2 } from "lucide-react";
+import { reservationService } from "@/services/reservationService";
+import { userService } from "@/services/userService";
+import { useAuth } from "@/contexts/AuthContext";
 
 const getActionBadge = (action: string) => {
   const colors: Record<string, string> = {
@@ -26,12 +29,41 @@ const getActionLabel = (action: string) => {
   return labels[action] || action;
 };
 
-const MOCK_PENDING_GROUPS = 5;
-
 export function AdminDashboard() {
-  const { currentUser } = useOutletContext<any>();
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    pendingBookings: 0,
+    approvedBookings: 0,
+    totalUsers: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  if (!currentUser || (currentUser.role !== "super-admin" && currentUser.role !== "admin-conseil")) {
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [reservations, users] = await Promise.all([
+          reservationService.getAll({}),
+          userService.getAll({})
+        ]);
+        
+        setStats({
+          pendingBookings: reservations.content.filter(r => r.statut === "EN_ATTENTE").length,
+          approvedBookings: reservations.content.filter(r => r.statut === "CONFIRMEE").length,
+          totalUsers: users.totalElements
+        });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (user?.role === "ADMIN") {
+      fetchStats();
+    }
+  }, [user]);
+
+  if (!user || user.role !== "ADMIN") {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
@@ -43,9 +75,16 @@ export function AdminDashboard() {
     );
   }
 
-  const pendingBookings = mockBookings.filter((b) => b.status === "pending");
-  const approvedBookings = mockBookings.filter((b) => b.status === "approved");
-  const supervisedUsers = mockUsers.filter((u) => !u.hasAccount);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-900 mx-auto mb-4" />
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -61,7 +100,7 @@ export function AdminDashboard() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-xs text-gray-600 mb-1">Réservations en attente</p>
-              <p className="text-2xl font-bold text-orange-600">{pendingBookings.length}</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.pendingBookings}</p>
             </div>
             <div className="bg-orange-100 w-9 h-9 rounded-full flex items-center justify-center">
               <Clock className="w-4 h-4 text-orange-600" />
@@ -74,7 +113,7 @@ export function AdminDashboard() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-xs text-gray-600 mb-1">Réservations validées</p>
-              <p className="text-2xl font-bold text-green-600">{approvedBookings.length}</p>
+              <p className="text-2xl font-bold text-green-600">{stats.approvedBookings}</p>
             </div>
             <div className="bg-green-100 w-9 h-9 rounded-full flex items-center justify-center">
               <CheckCircle className="w-4 h-4 text-green-600" />

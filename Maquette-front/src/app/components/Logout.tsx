@@ -1,13 +1,18 @@
 import { useEffect } from "react";
-import { Link, useOutletContext } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Logout() {
-  const { setCurrentUser } = useOutletContext<any>();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    setCurrentUser(null);
-  }, []);
+    const handleLogout = async () => {
+      await logout();
+    };
+    handleLogout();
+  }, [logout]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
