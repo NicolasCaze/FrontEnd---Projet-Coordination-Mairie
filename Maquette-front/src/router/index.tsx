@@ -21,6 +21,9 @@ import { AdminDashboard } from "@/app/components/AdminDashboard";
 import { AdminBookings } from "@/app/components/AdminBookings";
 import { AdminUsers } from "@/app/components/AdminUsers";
 import { AdminGroups } from "@/app/components/AdminGroups";
+import { ManageBiens } from "@/app/components/ManageBiens";
+import { ManageGroupes } from "@/app/components/ManageGroupes";
+import { ManageTypeGroupes } from "@/app/components/ManageTypeGroupes";
 import { AuditLog } from "@/app/components/AuditLog";
 import { NotFound } from "@/app/components/NotFound";
 
@@ -150,6 +153,30 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute requireAdmin>
             <AdminGroups />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "admin/manage-biens",
+        element: (
+          <ProtectedRoute requireAdmin>
+            <ManageBiens />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "admin/manage-groupes",
+        element: (
+          <ProtectedRoute requireAdmin>
+            <ManageGroupes />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "admin/manage-type-groupes",
+        element: (
+          <ProtectedRoute requireAdmin>
+            <ManageTypeGroupes />
           </ProtectedRoute>
         ),
       },

@@ -4,8 +4,10 @@ export interface User {
   prenom: string;
   email: string;
   telephone?: string;
+  adresse?: string;
   is_resident?: boolean;
-  role: 'ADMIN' | 'USER' | 'MODERATEUR' | 'TUTORED';
+  niveau_tarif?: number;
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'USER' | 'MODERATEUR' | 'TUTORED' | 'SECRETARY';
   statut?: 'ACTIF' | 'INACTIF' | 'SUSPENDU';
   created_at?: string;
 }
@@ -31,6 +33,17 @@ export interface RegisterRequest {
   is_resident?: boolean;
 }
 
+export interface Tarif {
+  id_tarif?: string;
+  id_bien?: string;
+  niveau_1: number;
+  niveau_2: number;
+  niveau_3: number;
+  niveau_4: number;
+  niveau_5: number;
+  creerLe?: string;
+}
+
 export interface Bien {
   id_bien: string;
   nom: string;
@@ -39,6 +52,7 @@ export interface Bien {
   creerLe?: string;
   id_cat_bien?: string;
   nom_cat_bien?: string;
+  tarif?: Tarif;
   // Propriétés calculées pour compatibilité
   id?: string;
   type?: string;
@@ -57,6 +71,7 @@ export interface Reservation {
   date_fin: string;
   statut: 'EN_ATTENTE' | 'CONFIRMEE' | 'ANNULEE' | 'TERMINEE';
   statut_caution?: 'EN_ATTENTE' | 'VALIDEE' | 'REFUSEE';
+  prix?: number;
   created_at?: string;
   motif?: string;
   nombrePersonnes?: number;
@@ -77,12 +92,11 @@ export interface Groupe {
 }
 
 export interface GroupeMembre {
-  id: number;
-  groupeId: number;
-  userId: number;
-  role: 'ADMIN' | 'MEMBRE';
-  statut: 'EN_ATTENTE' | 'ACCEPTE' | 'REFUSE';
-  joinedAt?: string;
+  id_user: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  roleGroupe: 'ADMIN' | 'MEMBRE';
   user?: User;
 }
 

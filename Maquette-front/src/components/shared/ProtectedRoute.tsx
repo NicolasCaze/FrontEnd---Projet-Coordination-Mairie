@@ -24,7 +24,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && user?.role !== 'ADMIN') {
+  if (requireAdmin && user?.role !== 'ADMIN' && user?.role !== 'SUPER_ADMIN') {
     return <Navigate to="/" replace />;
   }
 

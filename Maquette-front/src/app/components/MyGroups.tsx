@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Users, Hash, ArrowLeft, UserPlus, CheckCircle, Clock, X, LogOut, ShieldCheck, Settings, Loader2 } from "lucide-react";
+import { Users, Hash, ArrowLeft, UserPlus, CheckCircle, X, LogOut, Loader2 } from "lucide-react";
 import { groupeService } from "@/services/groupeService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Groupe } from "@/types";
@@ -19,6 +19,14 @@ export function MyGroups() {
     const fetchGroupes = async () => {
       try {
         const data = await groupeService.getMyGroups();
+        console.log("Groupes récupérés:", data);
+        data.forEach((g, i) => {
+          console.log(`Groupe ${i}:`, {
+            id_groupe: g.id_groupe,
+            nom: g.nom,
+            type: typeof g.id_groupe
+          });
+        });
         setGroupes(data);
       } catch (err) {
         console.error(err);
@@ -52,24 +60,34 @@ export function MyGroups() {
     );
   }
 
-  const isManagerRole = user.role === "ADMIN";
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (value.length <= 8) { setCode(value); setError(""); }
+    if (value.length <= 6) { setCode(value); setError(""); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length !== 8) { setError("Le code doit contenir exactement 8 caractères."); return; }
+    if (code.length !== 6) { setError("Le code doit contenir exactement 6 caractères."); return; }
     
     try {
-      // Logique pour rejoindre un groupe avec un code
-      // await groupeService.joinGroup(groupeId);
+      await groupeService.joinGroupByCode(code);
       setSubmitted(true);
       setCode("");
-    } catch (err) {
-      setError("Erreur lors de la tentative de rejoindre le groupe");
+      
+      // Rafraîchir la liste des groupes après 2 secondes
+      setTimeout(async () => {
+        const data = await groupeService.getMyGroups();
+        setGroupes(data);
+        handleCloseModal();
+      }, 2000);
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setError("Code invalide. Vérifiez le code et réessayez.");
+      } else if (err.response?.status === 409) {
+        setError("Vous êtes déjà membre de ce groupe.");
+      } else {
+        setError("Erreur lors de la tentative de rejoindre le groupe");
+      }
     }
   };
 
@@ -101,15 +119,13 @@ export function MyGroups() {
         </Link>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Mes groupes</h1>
-          {!isManagerRole && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-700 text-white rounded-lg text-sm font-semibold hover:bg-purple-600 transition"
-            >
-              <UserPlus className="w-4 h-4" />
-              Rejoindre un groupe
-            </button>
-          )}
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-700 text-white rounded-lg text-sm font-semibold hover:bg-purple-600 transition"
+          >
+            <UserPlus className="w-4 h-4" />
+            Rejoindre un groupe
+          </button>
         </div>
       </div>
 
@@ -141,19 +157,25 @@ export function MyGroups() {
                   <CheckCircle className="w-3 h-3" /> Membre
                 </span>
 
-                <Link
-                  to={`/groups/${groupe.id_groupe}/manage`}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 hover:bg-blue-100 transition"
-                >
-                  <Users className="w-3 h-3" />
-                  Voir
-                </Link>
-                <button
-                  onClick={() => handleRemove(groupe.id_groupe)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-red-50 text-red-700 hover:bg-red-100"
-                >
-                  <LogOut className="w-3 h-3" /> Quitter
-                </button>
+                {groupe.id_groupe ? (
+                  <>
+                    <Link
+                      to={`/groups/${groupe.id_groupe}/manage`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 hover:bg-blue-100 transition"
+                    >
+                      <Users className="w-3 h-3" />
+                      Voir
+                    </Link>
+                    <button
+                      onClick={() => handleRemove(groupe.id_groupe)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition bg-red-50 text-red-700 hover:bg-red-100"
+                    >
+                      <LogOut className="w-3 h-3" /> Quitter
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400">Chargement...</span>
+                )}
               </div>
             ))}
           </div>
@@ -178,12 +200,12 @@ export function MyGroups() {
               </button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              Saisissez le code de 8 caractères fourni par votre administrateur de groupe.
+              Saisissez le code de 6 caractères fourni par votre administrateur de groupe.
             </p>
             {submitted ? (
               <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm mb-4">
                 <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                Demande envoyée, en attente de validation.
+                Vous avez rejoint le groupe avec succès !
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="mb-4">
@@ -193,22 +215,22 @@ export function MyGroups() {
                     type="text"
                     value={code}
                     onChange={handleChange}
-                    placeholder="EX : A1B2C3D4"
-                    maxLength={8}
+                    placeholder="EX : A1B2C3"
+                    maxLength={6}
                     autoFocus
                     className={`w-full pl-9 pr-4 py-2.5 border rounded-lg text-sm font-mono tracking-widest uppercase focus:ring-2 focus:ring-purple-500 focus:border-transparent ${error ? "border-red-400 bg-red-50" : "border-gray-300"}`}
                   />
                 </div>
                 <div className="flex justify-between mb-4">
                   {error ? <p className="text-xs text-red-600">{error}</p> : <span />}
-                  <p className="text-xs text-gray-400 ml-auto">{code.length}/8</p>
+                  <p className="text-xs text-gray-400 ml-auto">{code.length}/6</p>
                 </div>
                 <button
                   type="submit"
-                  disabled={code.length !== 8}
+                  disabled={code.length !== 6}
                   className="w-full py-2.5 bg-purple-700 text-white rounded-lg text-sm font-semibold hover:bg-purple-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  Envoyer la demande
+                  Rejoindre le groupe
                 </button>
               </form>
             )}

@@ -14,7 +14,16 @@ export function AdminBookings() {
   useEffect(() => {
     const fetchReservations = async () => {
       try {
-        const params = statusFilter !== "all" ? { statut: statusFilter } : {};
+        // Mapper les filtres vers les statuts réels
+        const statutMap: Record<string, string> = {
+          "all": "",
+          "pending": "EN_ATTENTE",
+          "approved": "CONFIRMEE",
+          "rejected": "ANNULEE"
+        };
+        
+        const statut = statutMap[statusFilter] || "";
+        const params = statut ? { statut } : {};
         const response = await reservationService.getAll(params);
         setReservations(response.content);
       } catch (err) {
@@ -24,12 +33,12 @@ export function AdminBookings() {
       }
     };
     
-    if (user?.role === "ADMIN") {
+    if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
       fetchReservations();
     }
   }, [statusFilter, user]);
 
-  if (!user || user.role !== "ADMIN") {
+  if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -50,7 +59,7 @@ export function AdminBookings() {
     );
   }
 
-  const handleValidate = async (id: number) => {
+  const handleValidate = async (id: string) => {
     try {
       await reservationService.confirm(id);
       const response = await reservationService.getAll({});
@@ -61,7 +70,7 @@ export function AdminBookings() {
     }
   };
 
-  const handleReject = async (id: number) => {
+  const handleReject = async (id: string) => {
     const reason = prompt("Raison du refus :");
     if (!reason) return;
     
@@ -147,7 +156,7 @@ export function AdminBookings() {
         <div className="space-y-3">
           {reservations.map((reservation) => {
             return (
-              <div key={reservation.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
+              <div key={reservation.id_reservation} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition">
                 <div className="flex gap-4">
                   <img
                     src={reservation.bien?.imageUrl || "/placeholder-property.jpg"}
@@ -159,8 +168,8 @@ export function AdminBookings() {
                       <div>
                         <h3 className="font-bold text-sm mb-0.5">{reservation.bien?.nom || "Bien supprimé"}</h3>
                         <p className="text-xs text-gray-500">
-                          Réservation #{reservation.id}
-                          {reservation.createdAt && " · Créée le " + new Date(reservation.createdAt).toLocaleDateString("fr-FR")}
+                          Réservation #{reservation.id_reservation}
+                          {reservation.created_at && " · Créée le " + new Date(reservation.created_at).toLocaleDateString("fr-FR")}
                         </p>
                       </div>
                       {getStatusBadge(reservation.statut)}
@@ -169,12 +178,12 @@ export function AdminBookings() {
                     <div className="flex flex-wrap gap-4 mb-2">
                       <div className="flex items-center gap-1.5 text-gray-700">
                         <User className="w-3.5 h-3.5 text-blue-900" />
-                        <span className="text-xs font-semibold">{reservation.utilisateur?.prenom} {reservation.utilisateur?.nom}</span>
+                        <span className="text-xs font-semibold">{reservation.user?.prenom} {reservation.user?.nom}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-gray-700">
                         <Calendar className="w-3.5 h-3.5 text-blue-900" />
                         <span className="text-xs">
-                          {new Date(reservation.dateDebut).toLocaleDateString("fr-FR")} → {new Date(reservation.dateFin).toLocaleDateString("fr-FR")}
+                          {new Date(reservation.date_debut).toLocaleDateString("fr-FR")} → {new Date(reservation.date_fin).toLocaleDateString("fr-FR")}
                         </span>
                       </div>
                       {reservation.nombrePersonnes && (
@@ -191,7 +200,7 @@ export function AdminBookings() {
 
                     <div className="flex items-center justify-between">
                       <Link
-                        to={`/booking-detail/${reservation.id}`}
+                        to={`/booking-detail/${reservation.id_reservation}`}
                         className="text-xs text-blue-900 hover:underline font-medium"
                       >
                         Voir les détails →
@@ -199,13 +208,13 @@ export function AdminBookings() {
                       {reservation.statut === "EN_ATTENTE" && (
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleValidate(reservation.id)}
+                            onClick={() => handleValidate(reservation.id_reservation)}
                             className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold text-xs"
                           >
                             Valider
                           </button>
                           <button
-                            onClick={() => handleReject(reservation.id)}
+                            onClick={() => handleReject(reservation.id_reservation)}
                             className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold text-xs"
                           >
                             Refuser

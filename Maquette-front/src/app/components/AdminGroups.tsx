@@ -13,8 +13,8 @@ export function AdminGroups() {
   useEffect(() => {
     const fetchGroupes = async () => {
       try {
-        const data = await groupeService.getAll();
-        setGroupes(data);
+        const response = await groupeService.getAll();
+        setGroupes(response.content);
       } catch (err) {
         console.error(err);
       } finally {
@@ -22,12 +22,12 @@ export function AdminGroups() {
       }
     };
     
-    if (user?.role === "ADMIN") {
+    if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
       fetchGroupes();
     }
   }, [user]);
 
-  if (!user || user.role !== "ADMIN") {
+  if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />

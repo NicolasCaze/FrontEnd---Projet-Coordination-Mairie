@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   
   const features = [
     {
@@ -47,18 +47,20 @@ export default function HomePage() {
                 Voir le catalogue
               </Link>
             </Button>
-            {user ? (
-              <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-blue-900" asChild>
-                <Link to="/dashboard">
-                  Mon tableau de bord
-                </Link>
-              </Button>
-            ) : (
-              <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-blue-900" asChild>
-                <Link to="/register">
-                  S'inscrire
-                </Link>
-              </Button>
+            {!isLoading && (
+              user ? (
+                <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-blue-900" asChild>
+                  <Link to="/dashboard">
+                    Mon tableau de bord
+                  </Link>
+                </Button>
+              ) : (
+                <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-blue-900" asChild>
+                  <Link to="/register">
+                    S'inscrire
+                  </Link>
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -91,34 +93,36 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4 text-center">
-          {user ? (
-            <>
-              <h2 className="text-3xl font-bold mb-4">
-                Bienvenue, {user.prenom} !
-              </h2>
-              <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-                Accédez à votre tableau de bord pour gérer vos réservations et groupes
-              </p>
-              <Button size="lg" asChild>
-                <Link to="/dashboard">
-                  Accéder au tableau de bord
-                </Link>
-              </Button>
-            </>
-          ) : (
-            <>
-              <h2 className="text-3xl font-bold mb-4">
-                Prêt à commencer ?
-              </h2>
-              <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-                Créez votre compte dès maintenant et accédez à tous nos services de réservation
-              </p>
-              <Button size="lg" asChild>
-                <Link to="/register">
-                  Créer un compte gratuitement
-                </Link>
-              </Button>
-            </>
+          {!isLoading && (
+            user ? (
+              <>
+                <h2 className="text-3xl font-bold mb-4">
+                  Bienvenue, {user.prenom} !
+                </h2>
+                <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+                  Accédez à votre tableau de bord pour gérer vos réservations et groupes
+                </p>
+                <Button size="lg" asChild>
+                  <Link to="/dashboard">
+                    Accéder au tableau de bord
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl font-bold mb-4">
+                  Prêt à commencer ?
+                </h2>
+                <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+                  Créez votre compte dès maintenant et accédez à tous nos services de réservation
+                </p>
+                <Button size="lg" asChild>
+                  <Link to="/register">
+                    Créer un compte gratuitement
+                  </Link>
+                </Button>
+              </>
+            )
           )}
         </div>
       </section>

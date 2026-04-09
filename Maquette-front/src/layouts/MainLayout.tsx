@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/app/components/ui/dropdown-menu';
-import { User, LogOut, Settings, Calendar, Users } from 'lucide-react';
+import { User, LogOut, Settings } from 'lucide-react';
 
 export function MainLayout() {
   const { user, logout } = useAuth();
@@ -62,14 +62,12 @@ export function MainLayout() {
                     <Settings className="mr-2 h-4 w-4" />
                     Profil
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/my-bookings')}>
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Mes Réservations
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/my-groups')}>
-                    <Users className="mr-2 h-4 w-4" />
-                    Mes Groupes
-                  </DropdownMenuItem>
+                  {(user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
+                    <DropdownMenuItem onClick={() => navigate('/admin')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Dashboard Admin
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />

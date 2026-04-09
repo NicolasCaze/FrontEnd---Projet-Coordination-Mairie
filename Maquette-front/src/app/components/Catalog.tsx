@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Building, Wrench, Users, Filter, Loader2 } from "lucide-react";
+import { Building, Users, Loader2 } from "lucide-react";
 import { bienService } from "@/services/bienService";
 import { Bien } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,8 +10,6 @@ export function Catalog() {
   const [biens, setBiens] = useState<Bien[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [appliedType, setAppliedType] = useState<string>("all");
 
   useEffect(() => {
     fetchBiens();
@@ -30,21 +28,6 @@ export function Catalog() {
     }
   };
 
-  const handleFilter = () => {
-    setAppliedType(typeFilter);
-  };
-
-  const handleReset = () => {
-    setTypeFilter("all");
-    setAppliedType("all");
-  };
-
-  const filteredResources = biens.filter((bien) => {
-    const matchesType = appliedType === "all" || bien.type === appliedType;
-    return matchesType;
-  });
-
-  const isFiltered = appliedType !== "all";
 
   if (loading) {
     return (
@@ -77,57 +60,16 @@ export function Catalog() {
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
-        <div className="grid grid-cols-1 gap-4">
-          {/* Type Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-              <Filter className="w-4 h-4" />
-              Type de ressource
-            </label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as ResourceType | "all")}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-            >
-              <option value="all">Tous les types</option>
-              <option value="salle">Salles</option>
-              <option value="materiel">Matériel</option>
-              <option value="vehicule">Véhicules</option>
-              <option value="equipement">Équipement</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-center gap-3">
-          <button
-            onClick={handleFilter}
-            className="px-6 py-2.5 bg-blue-900 text-white rounded-lg font-semibold hover:bg-blue-800 transition"
-          >
-            Filtrer
-          </button>
-          {isFiltered && (
-            <button
-              onClick={handleReset}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
-            >
-              Réinitialiser
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Results count */}
       <div className="mb-6">
         <p className="text-gray-600">
-          {filteredResources.length} ressource{filteredResources.length > 1 ? "s" : ""} trouvée{filteredResources.length > 1 ? "s" : ""}
+          {biens.length} ressource{biens.length > 1 ? "s" : ""} disponible{biens.length > 1 ? "s" : ""}
         </p>
       </div>
 
       {/* Resources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredResources.map((bien) => (
+        {biens.map((bien) => (
           <div
             key={bien.id_bien}
             className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition group flex flex-col"
@@ -204,9 +146,9 @@ export function Catalog() {
       </div>
 
       {/* No results */}
-      {filteredResources.length === 0 && (
+      {biens.length === 0 && (
         <div className="text-center py-16">
-          <p className="text-gray-500 text-lg">Aucune ressource trouvée avec ces critères</p>
+          <p className="text-gray-500 text-lg">Aucune ressource disponible</p>
         </div>
       )}
     </div>

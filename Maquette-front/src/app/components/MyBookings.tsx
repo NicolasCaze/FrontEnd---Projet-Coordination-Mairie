@@ -165,6 +165,16 @@ export function MyBookings() {
             >
               Validées
             </button>
+            <button
+              onClick={() => setStatusFilter("ANNULEE")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                statusFilter === "ANNULEE"
+                  ? "bg-red-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Refusées
+            </button>
           </div>
         </div>
       </div>

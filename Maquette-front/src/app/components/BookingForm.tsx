@@ -27,6 +27,7 @@ export function BookingForm() {
 
   const [files, setFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const [prixCalcule, setPrixCalcule] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,6 +50,60 @@ export function BookingForm() {
     
     fetchData();
   }, [resourceId, user]);
+
+  // Calcul automatique du prix en fonction du groupe sélectionné
+  useEffect(() => {
+    if (!bien?.tarif) {
+      setPrixCalcule(null);
+      return;
+    }
+
+    let niveauTarif = 1; // Par défaut niveau 1 (membre individuel)
+
+    if (formData.groupeId) {
+      // Réservation pour un groupe : utiliser le niveau du groupe
+      const groupeSelectionne = groupes.find(g => g.id_groupe === formData.groupeId);
+      console.log('DEBUG - Groupe sélectionné:', groupeSelectionne);
+      console.log('DEBUG - Niveau tarif du groupe:', groupeSelectionne?.niveau_tarif);
+      if (groupeSelectionne?.niveau_tarif) {
+        niveauTarif = groupeSelectionne.niveau_tarif;
+      }
+    } else {
+      // Réservation individuelle : utiliser le niveau de l'utilisateur
+      console.log('DEBUG - User:', user);
+      console.log('DEBUG - Niveau tarif user:', user?.niveau_tarif);
+      niveauTarif = user?.niveau_tarif || 1;
+    }
+
+    console.log('DEBUG - Niveau tarifaire final:', niveauTarif);
+    console.log('DEBUG - Tarif du bien:', bien.tarif);
+
+    // Récupérer le prix correspondant au niveau
+    const tarif = bien.tarif;
+    let prix = 0;
+    switch (niveauTarif) {
+      case 1:
+        prix = tarif.niveau_1 || 0;
+        break;
+      case 2:
+        prix = tarif.niveau_2 || 0;
+        break;
+      case 3:
+        prix = tarif.niveau_3 || 0;
+        break;
+      case 4:
+        prix = tarif.niveau_4 || 0;
+        break;
+      case 5:
+        prix = tarif.niveau_5 || 0;
+        break;
+      default:
+        prix = tarif.niveau_1 || 0;
+    }
+
+    console.log('DEBUG - Prix calculé:', prix);
+    setPrixCalcule(prix);
+  }, [bien, formData.groupeId, groupes, user]);
 
   if (loading) {
     return (
@@ -246,6 +301,33 @@ export function BookingForm() {
             </div>
           </div>
         </div>
+
+        {/* Prix */}
+        {prixCalcule !== null && (
+          <div className="pb-6 border-b border-gray-100">
+            <h3 className="text-base font-bold mb-3">Tarif applicable</h3>
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">
+                    {formData.groupeId 
+                      ? `Tarif groupe : ${groupes.find(g => g.id_groupe === formData.groupeId)?.nom}` 
+                      : "Tarif individuel"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Niveau tarifaire {formData.groupeId 
+                      ? groupes.find(g => g.id_groupe === formData.groupeId)?.niveau_tarif || 1
+                      : (user as any)?.niveau_tarif || 1}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-blue-900">{prixCalcule.toFixed(2)} €</p>
+                  <p className="text-xs text-gray-500">par réservation</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="pb-6 border-b border-gray-100">

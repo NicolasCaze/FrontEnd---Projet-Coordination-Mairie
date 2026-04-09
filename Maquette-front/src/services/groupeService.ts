@@ -75,4 +75,9 @@ export const groupeService = {
   async leaveGroup(groupeId: string): Promise<void> {
     await api.post(`/groupes/${groupeId}/leave`);
   },
+
+  async joinGroupByCode(codeInvitation: string): Promise<GroupeMembre> {
+    const response = await api.post<GroupeMembre>('/groupes/join-by-code', { codeInvitation });
+    return response.data;
+  },
 };

@@ -28,10 +28,18 @@ export function GroupManagement() {
       if (!groupId) return;
       
       try {
-        const [groupeData, membresData] = await Promise.all([
-          groupeService.getById(parseInt(groupId)),
-          groupeService.getMembers(parseInt(groupId))
+        const [groupeData, membresResponse] = await Promise.all([
+          groupeService.getById(groupId),
+          groupeService.getMembers(groupId)
         ]);
+        console.log("DEBUG Frontend - Groupe:", groupeData);
+        console.log("DEBUG Frontend - Réponse membres:", membresResponse);
+        
+        // Extraire le tableau content de l'objet paginé
+        const membresData = membresResponse.content || [];
+        console.log("DEBUG Frontend - Membres extraits:", membresData);
+        console.log("DEBUG Frontend - Premier membre:", membresData[0]);
+        
         setGroupe(groupeData);
         setMembres(membresData);
         setEditForm({
@@ -39,7 +47,7 @@ export function GroupManagement() {
           description: groupeData.description || ""
         });
       } catch (err) {
-        console.error(err);
+        console.error("Erreur lors du chargement:", err);
       } finally {
         setLoading(false);
       }
@@ -48,10 +56,10 @@ export function GroupManagement() {
     fetchData();
   }, [groupId]);
 
-  const isGroupAdmin = user?.role === "ADMIN";
-  const isAdminRole = user?.role === "ADMIN";
-  const backTo = isAdminRole ? "/admin/groups" : "/my-groups";
-  const backLabel = isAdminRole ? "Retour à la gestion des groupes" : "Retour à mes groupes";
+  // Vérifier si l'utilisateur connecté est l'admin de CE groupe
+  const isGroupAdmin = membres.some(m => m.id_user === user?.id_user && m.roleGroupe === "ADMIN");
+  const backTo = "/my-groups";
+  const backLabel = "Retour à mes groupes";
 
   if (loading) {
     return (
@@ -77,7 +85,7 @@ export function GroupManagement() {
     if (!confirm("Voulez-vous vraiment retirer ce membre ?")) return;
     
     try {
-      await groupeService.removeMember(parseInt(groupId!), membreId);
+      await groupeService.removeMember(groupId!, membreId);
       setMembres(membres.filter(m => m.id !== membreId));
     } catch (err) {
       console.error(err);
@@ -89,8 +97,8 @@ export function GroupManagement() {
     if (!selectedUserId) return;
     
     try {
-      await groupeService.addMember(parseInt(groupId!), selectedUserId);
-      const membresData = await groupeService.getMembers(parseInt(groupId!));
+      await groupeService.addMember(groupId!, selectedUserId);
+      const membresData = await groupeService.getMembers(groupId!);
       setMembres(membresData);
       setShowAddModal(false);
       setSearch("");
@@ -105,8 +113,8 @@ export function GroupManagement() {
 
   const handleAccept = async (membreId: number) => {
     try {
-      await groupeService.acceptMember(parseInt(groupId!), membreId);
-      const membresData = await groupeService.getMembers(parseInt(groupId!));
+      await groupeService.acceptMember(groupId!, membreId);
+      const membresData = await groupeService.getMembers(groupId!);
       setMembres(membresData);
     } catch (err) {
       console.error(err);
@@ -115,8 +123,8 @@ export function GroupManagement() {
 
   const handleReject = async (membreId: number) => {
     try {
-      await groupeService.rejectMember(parseInt(groupId!), membreId);
-      const membresData = await groupeService.getMembers(parseInt(groupId!));
+      await groupeService.rejectMember(groupId!, membreId);
+      const membresData = await groupeService.getMembers(groupId!);
       setMembres(membresData);
     } catch (err) {
       console.error(err);
@@ -125,7 +133,7 @@ export function GroupManagement() {
 
   const canRemove = (membre: GroupeMembre) => {
     if (!isGroupAdmin) return false;
-    if (membre.userId === user?.id) return false;
+    if (membre.id_user === user?.id_user) return false;
     return true;
   };
 
@@ -138,19 +146,8 @@ export function GroupManagement() {
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{groupInfo.name}</h1>
-            <p className="text-sm text-gray-500 mt-1">{groupInfo.description}</p>
-          </div>
-          <div className="flex items-start gap-3 flex-shrink-0">
-            {isGroupAdmin && (
-              <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-right shadow-sm">
-                <p className="text-xs text-gray-400 font-medium mb-0.5">Code groupe</p>
-                <p className="text-base font-mono font-bold text-gray-800 flex items-center gap-1.5 justify-end">
-                  <Hash className="w-4 h-4 text-gray-400" />
-                  {group.code}
-                </p>
-              </div>
-            )}
+            <h1 className="text-2xl font-bold">{groupe.nom}</h1>
+            <p className="text-sm text-gray-500 mt-1">{groupe.description}</p>
           </div>
         </div>
       </div>
@@ -160,47 +157,33 @@ export function GroupManagement() {
         <h2 className="text-base font-bold flex items-center gap-2 mb-4">
           <Users className="w-4 h-4 text-blue-900" />
           Membres
-          <span className="text-xs font-normal text-gray-400">{members.length} membre{members.length > 1 ? "s" : ""}</span>
-          {isGroupAdmin && (
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 bg-blue-900 text-white rounded-lg text-xs font-semibold hover:bg-blue-800 transition"
-            >
-              <UserPlus className="w-3 h-3" />
-              Ajouter un membre
-            </button>
-          )}
+          <span className="text-xs font-normal text-gray-400">{membres.length} membre{membres.length > 1 ? "s" : ""}</span>
         </h2>
 
-        {members.length > 0 ? (
+        {membres.length > 0 ? (
           <div className="divide-y divide-gray-100">
-            {members.map((member) => (
-              <div key={member.id} className="flex items-center gap-3 py-3">
+            {membres.map((member: GroupeMembre) => (
+              <div key={member.id_user} className="flex items-center gap-3 py-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${
-                  member.role === "admin-conseil" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"
+                  member.roleGroupe === "ADMIN" ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"
                 }`}>
-                  {member.role === "admin-conseil"
+                  {member.roleGroupe === "ADMIN"
                     ? <ShieldCheck className="w-4 h-4" />
-                    : `${member.firstName[0]}${member.lastName[0] ?? ""}`
+                    : `${member.prenom[0]}${member.nom[0] ?? ""}`
                   }
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">{member.firstName} {member.lastName}</p>
+                  <p className="text-sm font-semibold">{member.prenom} {member.nom}</p>
                   <p className="text-xs text-gray-500">{member.email}</p>
                 </div>
-                {member.role === "admin-conseil" && (
+                {member.roleGroupe === "ADMIN" && (
                   <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-semibold">
-                    Admin-Conseil
-                  </span>
-                )}
-                {member.role === "admin-groupe" && (
-                  <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">
-                    Admin-Groupe
+                    Administrateur
                   </span>
                 )}
                 {isGroupAdmin && (
                   <button
-                    onClick={() => handleRemoveMember(member.id)}
+                    onClick={() => handleRemoveMember(member.id_user)}
                     disabled={!canRemove(member)}
                     title={!canRemove(member) ? "Impossible de retirer un administrateur" : "Retirer du groupe"}
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
@@ -221,74 +204,15 @@ export function GroupManagement() {
         )}
       </div>
 
-      {/* Demandes en attente - visible uniquement pour les admins */}
-      {isGroupAdmin && <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+      {/* Demandes en attente - fonctionnalité désactivée pour l'instant */}
+      {/* {isGroupAdmin && <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <h2 className="text-base font-bold flex items-center gap-2 mb-4">
           <Clock className="w-4 h-4 text-orange-600" />
           Demandes en attente
-          {pending.length > 0 && (
-            <span className="ml-auto text-xs font-semibold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-              {pending.length}
-            </span>
-          )}
         </h2>
+        <p className="text-sm text-gray-500 text-center py-4">Aucune demande en attente.</p>
+      </div>} */}
 
-        {pending.length > 0 ? (
-          <div className="divide-y divide-gray-100">
-            {pending.map((req) => (
-              <div key={req.id} className="flex items-center gap-3 py-3">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-orange-700">
-                  {req.firstName[0]}{req.lastName[0]}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">{req.firstName} {req.lastName}</p>
-                  <p className="text-xs text-gray-500">{req.email}</p>
-                </div>
-                <span className="text-xs text-gray-400 mr-2">
-                  {new Date(req.requestedAt).toLocaleDateString("fr-FR")}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleAccept(req.id)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-800 rounded-lg text-xs font-semibold hover:bg-green-200 transition"
-                  >
-                    <CheckCircle className="w-3 h-3" />
-                    Valider
-                  </button>
-                  <button
-                    onClick={() => handleReject(req.id)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-semibold hover:bg-red-200 transition"
-                  >
-                    <XCircle className="w-3 h-3" />
-                    Refuser
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500 text-center py-4">Aucune demande en attente.</p>
-        )}
-      </div>}
-
-      {isAdminRole && !deleted && (
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={() => { setEditForm({ ...groupInfo }); setShowEditModal(true); }}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 w-40 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 shadow-sm transition"
-          >
-            <Pencil className="w-4 h-4" />
-            Modifier
-          </button>
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 w-40 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition"
-          >
-            <Trash2 className="w-4 h-4" />
-            Supprimer
-          </button>
-        </div>
-      )}
 
       {deleted && (
         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700 font-medium text-center">
@@ -310,18 +234,18 @@ export function GroupManagement() {
               </div>
             </div>
             <p className="text-sm text-gray-700 mb-3">
-              Pour confirmer, saisissez le nom du groupe : <strong>{group.name}</strong>
+              Pour confirmer, saisissez le nom du groupe : <strong>{groupe.nom}</strong>
             </p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={(e) => setDeleteConfirmName(e.target.value)}
-              placeholder={group.name}
+              placeholder={groupe.nom}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent mb-4"
             />
             <div className="flex gap-3">
               <button
-                disabled={deleteConfirmName !== group.name}
+                disabled={deleteConfirmName !== groupe.nom}
                 onClick={() => { setDeleted(true); setShowDeleteModal(false); setDeleteConfirmName(""); }}
                 className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
@@ -365,31 +289,11 @@ export function GroupManagement() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-2">Dispenses et obligations</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {([
-                    { key: "dispense", label: "Dispense de paiement" },
-                    { key: "justificatif", label: "Justificatif requis" },
-                    { key: "caution", label: "Caution requise" },
-                  ] as { key: keyof GroupExemptions; label: string }[]).map(({ key, label }) => (
-                    <label key={key} className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer hover:bg-gray-50 transition ${editForm.exemptions[key] ? "border-blue-300 bg-blue-50" : "border-gray-200"}`}>
-                      <input
-                        type="checkbox"
-                        checked={editForm.exemptions[key]}
-                        onChange={(e) => setEditForm({ ...editForm, exemptions: { ...editForm.exemptions, [key]: e.target.checked } })}
-                        className="w-4 h-4 text-blue-600 rounded"
-                      />
-                      <span className="text-sm font-medium">{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
             </div>
             <div className="flex gap-3 mt-5">
               <button
-                disabled={!editForm.name.trim()}
-                onClick={() => { setGroupInfo({ ...editForm }); setShowEditModal(false); }}
+                disabled={!editForm.nom.trim()}
+                onClick={() => { setGroupe({ ...groupe, ...editForm }); setShowEditModal(false); }}
                 className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 bg-blue-900 text-white rounded-lg text-sm font-semibold hover:bg-blue-800 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />Enregistrer
